@@ -1,5 +1,10 @@
 pipeline {
-    agent any  // Use any available agent
+    agent {
+        docker {
+            image 'maven:3.8.5-openjdk-11' // Uses a pre-built Maven Docker image
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
         GIT_REPO = 'https://github.com/KhushbuTandel/Ci-cd-with-jenkins-and-argocd.git'
@@ -36,7 +41,10 @@ pipeline {
         stage('Unit Test') {
             steps {
                 echo 'Running Unit Tests...'
-                sh 'cd Ci-cd-with-jenkins-and-argocd/spring-boot-app && mvn test'
+                sh '''
+                    cd Ci-cd-with-jenkins-and-argocd/spring-boot-app
+                    mvn clean test
+                '''
             }
         }
 
@@ -57,7 +65,10 @@ pipeline {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         echo 'Building Docker Image...'
-                        sh 'cd Ci-cd-with-jenkins-and-argocd/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
+                        sh '''
+                            cd Ci-cd-with-jenkins-and-argocd/spring-boot-app
+                            docker build -t ${DOCKER_IMAGE} .
+                        '''
 
                         echo 'Logging in to Docker Hub...'
                         sh 'echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin'
@@ -84,11 +95,4 @@ pipeline {
                             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" spring-boot-app-manifests/deployment.yml
                             git add spring-boot-app-manifests/deployment.yml
                             git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                            git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${GIT_BRANCH}
-                        '''
-                    }
-                }
-            }
-        }
-    } // This closes the 'stages' block
-} // This closes the 'pipeline' block
+                            git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github
