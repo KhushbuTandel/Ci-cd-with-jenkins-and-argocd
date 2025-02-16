@@ -11,6 +11,20 @@ pipeline {
 
     stages {
 
+        stage('Check Maven Version') {
+            steps {
+                // Ensure Maven is installed and accessible
+                sh 'mvn -v'
+            }
+        }
+
+        stage('Check Docker Version') {
+            steps {
+                // Ensure Docker is installed and accessible
+                sh 'docker --version'
+            }
+        }
+
         stage('Checkout') {
             steps {
                 sh 'echo passed'
