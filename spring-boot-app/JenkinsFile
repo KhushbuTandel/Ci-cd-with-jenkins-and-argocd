@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.8.5-openjdk-11' // Uses Maven Docker image
-            args '-v /var/run/docker.sock:/var/run/docker.sock' // Allows Docker commands inside the container
-        }
-    }
+    agent any // Instead of agent { docker { image 'maven:3.8.5-openjdk-11' } }
 
     environment {
         GIT_REPO = 'https://github.com/KhushbuTandel/Ci-cd-with-jenkins-and-argocd.git'
