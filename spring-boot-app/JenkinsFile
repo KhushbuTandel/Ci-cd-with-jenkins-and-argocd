@@ -1,5 +1,5 @@
 pipeline {
-    agent any // Use any available agent for the pipeline
+    agent any // Uses any available Jenkins agent
 
     environment {
         GIT_REPO = 'https://github.com/KhushbuTandel/Ci-cd-with-jenkins-and-argocd.git'
@@ -33,12 +33,12 @@ pipeline {
             }
         }
 
-        stage('Run Unit Tests with Gradle') {
+        stage('Unit Test') {
             steps {
-                echo 'Running Unit Tests with Gradle...'
+                echo 'Running Unit Tests...'
                 sh '''
                     cd Ci-cd-with-jenkins-and-argocd/spring-boot-app || exit 1
-                    gradle test
+                    ./gradlew test
                 '''
             }
         }
@@ -49,7 +49,7 @@ pipeline {
                     echo 'Running Static Code Analysis...'
                     sh '''
                         cd Ci-cd-with-jenkins-and-argocd/spring-boot-app || exit 1
-                        gradle sonarqube -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}
+                        ./gradlew sonarqube -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}
                     '''
                 }
             }
@@ -62,7 +62,6 @@ pipeline {
                         echo 'Building Docker Image...'
                         sh '''
                             cd Ci-cd-with-jenkins-and-argocd/spring-boot-app || exit 1
-                            gradle build
                             docker build -t ${DOCKER_IMAGE} .
                         '''
 
