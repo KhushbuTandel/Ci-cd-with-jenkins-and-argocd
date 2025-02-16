@@ -1,78 +1,40 @@
 pipeline {
-    agent any // Uses any available Jenkins agent
+    agent any  // Runs directly on the Jenkins VM
 
     environment {
-        GIT_REPO = 'https://github.com/KhushbuTandel/Ci-cd-with-jenkins-and-argocd.git'
-        GIT_BRANCH = 'main'
-        SONAR_URL = "http://52.28.235.242:9000"
         DOCKER_IMAGE = "khushbu1216/springboot:${BUILD_NUMBER}"
-        GIT_USER_NAME = "KhushbuTandel"
         GIT_REPO_NAME = "Ci-cd-with-jenkins-and-argocd"
+        GIT_USER_NAME = "KhushbuTandel"
     }
 
     stages {
-        stage('Git Checkout') {
+
+        stage('Checkout') {
             steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'github', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                        echo 'Cleaning workspace...'
-                        sh '''
-                            if [ -d "Ci-cd-with-jenkins-and-argocd" ]; then
-                                rm -rf Ci-cd-with-jenkins-and-argocd
-                            fi
-                        '''
-                        
-                        echo 'Cloning the Git repository...'
-                        sh '''
-                            git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git
-                            cd ${GIT_REPO_NAME}
-                            git checkout ${GIT_BRANCH}
-                        '''
-                    }
-                }
+                sh 'echo passed'
+                git branch: 'main', url: 'https://github.com/KhushbuTandel/Ci-cd-with-jenkins-and-argocd.git'
+                sh 'ls -la' // Check if Jenkinsfile exists
             }
         }
 
-        stage('Unit Test') {
+        stage('Build and Test') {
             steps {
-                echo 'Running Unit Tests...'
                 sh '''
-                    cd Ci-cd-with-jenkins-and-argocd/spring-boot-app || exit 1
-                    ./gradlew test
+                    ls -ltr
+                    cd spring-boot-app && mvn clean package
                 '''
-            }
-        }
-
-        stage('Static Code Analysis (SAST)') {
-            steps {
-                withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_AUTH_TOKEN')]) {
-                    echo 'Running Static Code Analysis...'
-                    sh '''
-                        cd Ci-cd-with-jenkins-and-argocd/spring-boot-app || exit 1
-                        ./gradlew sonarqube -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}
-                    '''
-                }
             }
         }
 
         stage('Build and Push Docker Image') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        echo 'Building Docker Image...'
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
                         sh '''
-                            cd Ci-cd-with-jenkins-and-argocd/spring-boot-app || exit 1
-                            docker build -t ${DOCKER_IMAGE} .
+                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+                            docker build -t ${DOCKER_IMAGE} spring-boot-app  # Ensure correct directory
+                            docker push ${DOCKER_IMAGE}
                         '''
-
-                        echo 'Logging in to Docker Hub...'
-                        sh 'echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin'
-
-                        echo 'Pushing Docker Image to Docker Hub...'
-                        sh 'docker push ${DOCKER_IMAGE}'
-
-                        echo 'Docker Logout'
-                        sh 'docker logout'
                     }
                 }
             }
@@ -80,21 +42,18 @@ pipeline {
 
         stage('Update Deployment File') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'github', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                    script {
-                        echo 'Updating Kubernetes Deployment YAML...'
-                        sh '''
-                            cd Ci-cd-with-jenkins-and-argocd || exit 1
-                            git config user.email "tandelkhushbu1216@gmail.com"
-                            git config user.name "KhushbuTandel"
-                            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" spring-boot-app-manifests/deployment.yml
-                            git add spring-boot-app-manifests/deployment.yml
-                            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                            git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${GIT_BRANCH}
-                        '''
-                    }
+                withCredentials([string(credentialsId: 'git-hub-token', variable: 'GITHUB_TOKEN')]) {
+                    sh '''
+                        git config user.email "tandelkhushbu1216@gmail.com"
+                        git config user.name "KhushbuTandel"
+                        sed -i "s|image: .*|image: khushbu1216/springboot:${BUILD_NUMBER}|g" spring-boot-app-manifests/deployment.yml
+                        git add spring-boot-app-manifests/deployment.yml
+                        git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+                    '''
                 }
             }
         }
-    }
-}
+
+    } // End of stages
+} // End of pipeline
