@@ -1,5 +1,5 @@
 pipeline {
-    agent any // Use any available agent
+    agent any // Use any available agent for the pipeline
 
     environment {
         GIT_REPO = 'https://github.com/KhushbuTandel/Ci-cd-with-jenkins-and-argocd.git'
@@ -33,13 +33,12 @@ pipeline {
             }
         }
 
-        stage('Unit Test') {
+        stage('Run Unit Tests with Gradle') {
             steps {
-                echo 'Running Unit Tests...'
+                echo 'Running Unit Tests with Gradle...'
                 sh '''
                     cd Ci-cd-with-jenkins-and-argocd/spring-boot-app || exit 1
-                    # Assuming JUnit or another test framework is used
-                    java -cp "lib/*:target/classes" org.junit.runner.JUnitCore com.example.MyTestClass
+                    gradle test
                 '''
             }
         }
@@ -50,8 +49,7 @@ pipeline {
                     echo 'Running Static Code Analysis...'
                     sh '''
                         cd Ci-cd-with-jenkins-and-argocd/spring-boot-app || exit 1
-                        # Assuming you have SonarQube integration via CLI
-                        java -jar sonar-scanner-cli.jar -Dsonar.projectKey=my_project -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}
+                        gradle sonarqube -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}
                     '''
                 }
             }
@@ -64,6 +62,7 @@ pipeline {
                         echo 'Building Docker Image...'
                         sh '''
                             cd Ci-cd-with-jenkins-and-argocd/spring-boot-app || exit 1
+                            gradle build
                             docker build -t ${DOCKER_IMAGE} .
                         '''
 
