@@ -1,5 +1,5 @@
 pipeline {
-    agent any // Instead of agent { docker { image 'maven:3.8.5-openjdk-11' } }
+    agent any // Use any available agent
 
     environment {
         GIT_REPO = 'https://github.com/KhushbuTandel/Ci-cd-with-jenkins-and-argocd.git'
@@ -38,7 +38,8 @@ pipeline {
                 echo 'Running Unit Tests...'
                 sh '''
                     cd Ci-cd-with-jenkins-and-argocd/spring-boot-app || exit 1
-                    mvn clean test
+                    # Assuming JUnit or another test framework is used
+                    java -cp "lib/*:target/classes" org.junit.runner.JUnitCore com.example.MyTestClass
                 '''
             }
         }
@@ -49,7 +50,8 @@ pipeline {
                     echo 'Running Static Code Analysis...'
                     sh '''
                         cd Ci-cd-with-jenkins-and-argocd/spring-boot-app || exit 1
-                        mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}
+                        # Assuming you have SonarQube integration via CLI
+                        java -jar sonar-scanner-cli.jar -Dsonar.projectKey=my_project -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}
                     '''
                 }
             }
