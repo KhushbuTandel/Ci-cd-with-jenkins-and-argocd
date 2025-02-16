@@ -10,22 +10,23 @@ pipeline {
         GIT_REPO_NAME = "Ci-cd-with-jenkins-and-argocd"
     }
 
-    stage('Git Checkout') {
-    steps {
-        script {
-            withCredentials([usernamePassword(credentialsId: 'github', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                echo 'Cleaning workspace...'
-                sh '''
-                    if [ -d "Ci-cd-with-jenkins-and-argocd" ]; then
-                        rm -rf Ci-cd-with-jenkins-and-argocd
-                    fi
-                '''
-                
-                echo 'Cloning the Git repository...'
-                sh '''
-                    git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git
-                    cd ${GIT_REPO_NAME}
-                    git checkout ${GIT_BRANCH}
+    stages {
+        stage('Git Checkout') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'github', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                        echo 'Cleaning workspace...'
+                        sh '''
+                            if [ -d "Ci-cd-with-jenkins-and-argocd" ]; then
+                                rm -rf Ci-cd-with-jenkins-and-argocd
+                            fi
+                        '''
+                        
+                        echo 'Cloning the Git repository...'
+                        sh '''
+                            git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git
+                            cd ${GIT_REPO_NAME}
+                            git checkout ${GIT_BRANCH}
                         '''
                     }
                 }
@@ -89,5 +90,5 @@ pipeline {
                 }
             }
         }
-    }
-}
+    } // This closes the 'stages' block
+} // This closes the 'pipeline' block
